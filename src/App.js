@@ -9,6 +9,19 @@ import {
 import './App.css';
 
 function App() {
+  const [passedQueue, setPassedQueue] = useState(false);
+
+  useEffect(()=>{
+    window.addEventListener("queuePassed", ()=> {
+      console.log("Got queue passed event.")
+      setPassedQueue(true)
+    });
+    return ()=>{
+      window.removeEventListener("queuePassed", ()=>{});
+    };
+  }, [])
+
+  console.log("render app")
   return (
     <Router>
       <div>
@@ -28,10 +41,13 @@ function App() {
 
         <Switch>
           <Route path="/protected">
-            <Protected />
+            <Protected passedQueue={passedQueue} />
           </Route>
           <Route path="/cancel">
-            <Comprobante />
+            <Cancel passedQueue={passedQueue} onCancel={()=>{
+              console.log("set passedQueue to false")
+              setPassedQueue(false)
+            }} />
           </Route>
           <Route path="/">
             <Home />
@@ -43,36 +59,20 @@ function App() {
 }
 
 function Home(){
-  return (<div>Home.</div>)
+  return (<div>Home</div>)
 }
 
-function Protected(){
-  const [passedQueue, setPassedQueue] = useState(false);  
+function Protected(props){
+  const passedQueue = props.passedQueue;
   const [cancelled, setCancelled] = useState(false);
-
-  const handleQueueEventListener = (e)=>{
-    console.log("queue passed event")
-    setPassedQueue(true);
-  }
-
-  useEffect(()=>{
-    window.addEventListener("queuePassed", handleQueueEventListener);
-    return ()=>{
-      window.removeEventListener("queuePassed", handleQueueEventListener);
-    };
-  }, [])
-
 
   useEffect(() => {
     if(passedQueue){
       console.warn("making api calls!");
-    }else{
-      //If the user hasn't gone through the queue when running this component, send him to the queue
-      console.log("validating user")      
-      window.QueueIt.validateUser();
     }
   }, [passedQueue])
 
+  console.log("Passed queue in protected: " , passedQueue);
   if(cancelled){
     console.log("redirecting to cancel");
     return (
@@ -92,25 +92,14 @@ function Protected(){
   }
 }
 
-function Comprobante(){
-  const [passedQueue, setPassedQueue] = useState(false);
-
-  const handleQueueEventListener = (e)=>{
-    console.log("cancel queue passed event");
-    setPassedQueue(true);
-  }
+function Cancel(props){
+  const passedQueue = props.passedQueue;
 
   useEffect(()=>{
-    window.addEventListener("queuePassed", handleQueueEventListener);
-    return ()=>{
-      window.removeEventListener("queuePassed", handleQueueEventListener);
-    };
-  }, [])
-
-  useEffect(()=>{
-    console.log("cancel - validating user.")
-    window.QueueIt.validateUser();
-  }, [passedQueue]);
+    if(passedQueue){
+      props.onCancel();
+    }
+  });
 
   return (<div>
     Sessions has been cancelled, you will start over from the end of the queue next time.
